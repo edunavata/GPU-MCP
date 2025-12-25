@@ -14,3 +14,6 @@ ENV/
 
 *.log
 .DS_Store
+
+gpu_db/
+server/db/

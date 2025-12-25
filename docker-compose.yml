@@ -9,10 +9,12 @@ services:
     volumes:
       # Montamos el contenido de server/ directamente en /app
       - ./server:/app:Z 
-      # Montamos la DB en /app para que sea accesible por los scripts
-      - ./gpu_database.db:/app/gpu_database.db:Z 
+      # Montamos la DB real del repo (solo lectura) dentro del contenedor
+      - ./gpu-bd/db/pcbuilder.db:/app/db/pcbuilder.db:ro,Z 
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=sqlite:////app/db/pcbuilder.db
     restart: unless-stopped
 
   openwebui:
