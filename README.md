@@ -4,6 +4,12 @@ MCP (Model Context Protocol) **chatbot** that queries the database created in th
 
 POC database repository: https://github.com/edunavata/gpu-bd.git
 
+## Demo
+<video src="media/demo-gpu-mcp.mp4" controls width="600">
+  Tu navegador no admite el elemento de video.
+</video>
+
+
 ## What this project is
 
 - **MCP server** that exposes the POC database so the model can answer with real context.
