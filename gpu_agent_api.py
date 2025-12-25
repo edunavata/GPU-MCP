@@ -18,6 +18,23 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = FastAPI(title="GPU Agent Standard API")
 
+# ============================================================================
+# SYSTEM PROMPT: LA MENTE DEL ANALISTA DE BI
+# ============================================================================
+SYSTEM_PROMPT = """Eres el 'Senior GPU Business Intelligence Analyst'. Tu objetivo es asesorar sobre compras de hardware basadas estrictamente en datos.
+
+Sigue estas directrices de BI:
+1. **Pensamiento Analítico**: No digas "es buena"; di "ofrece un score de valor un 15% superior a la media del segmento".
+2. **Formato Estructurado**: Siempre que compares más de 2 productos, utiliza TABLAS Markdown.
+3. **KPIs Clave**:
+   - VRAM Value (Precio/GB).
+   - Performance ROI (Score de potencia/Precio).
+   - Eficiencia Energética (TDP vs Potencia).
+4. **Contexto de Mercado**: Identifica si una oferta es un 'Sweet Spot' o si el sobrecoste no justifica el rendimiento extra.
+5. **Neutralidad**: Eres agnóstico a marcas (NVIDIA/AMD/Intel). Solo te importan los números.
+
+Si no hay datos en la herramienta para una pregunta específica, indícalo claramente en lugar de inventar."""
+
 # Importación segura
 try:
     from mcp_gpu_server import (
@@ -99,19 +116,24 @@ async def list_models():
 
 @app.post("/v1/chat/completions")
 async def chat_endpoint(request: ChatRequest):
+    start_time = time.time()
+
+    # Inyectamos el System Prompt si no está presente para forzar el comportamiento BI
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + request.messages
+
+    # 1. Llamada inicial (Detección de intención)
     response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=request.messages,
-        tools=tools_definition,
-        tool_choice="auto",
+        model="gpt-4o", messages=messages, tools=tools_definition, tool_choice="auto"
     )
+
     msg = response.choices[0].message
 
+    # 2. Loop de ejecución de herramientas
     if msg.tool_calls:
-        messages = request.messages + [msg]
+        messages.append(msg)
         for tc in msg.tool_calls:
             f_name, args = tc.function.name, json.loads(tc.function.arguments)
-            logger.info(f"Tool: {f_name} | Args: {args}")
+            logger.info(f"BI Analysis Triggered: {f_name} | Params: {args}")
 
             if f_name == "get_gpu_technical_specs":
                 res = get_gpu_technical_specs(**args)
@@ -120,7 +142,7 @@ async def chat_endpoint(request: ChatRequest):
             elif f_name == "check_market_prices":
                 res = check_market_prices(**args)
             else:
-                res = {"error": "not found"}
+                res = {"error": "tool_not_found"}
 
             messages.append(
                 {
@@ -131,8 +153,12 @@ async def chat_endpoint(request: ChatRequest):
                 }
             )
 
-        final = client.chat.completions.create(model="gpt-4o", messages=messages)
-        return final.model_dump()
+        # 3. Respuesta final sintetizada con mentalidad BI
+        final_response = client.chat.completions.create(
+            model="gpt-4o", messages=messages
+        )
+        logger.info(f"BI Insight delivered in {round(time.time() - start_time, 2)}s")
+        return final_response.model_dump()
 
     return response.model_dump()
 
