@@ -7,11 +7,14 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from openai import OpenAI
 import uvicorn
+from dotenv import load_dotenv
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("gpu-mcp-agent")
+
+load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)

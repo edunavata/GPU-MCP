@@ -4,6 +4,7 @@ import os
 import logging
 import sys
 from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
 
 # Configuración de Logging para el servidor de datos
 logging.basicConfig(
@@ -12,6 +13,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 sql_logger = logging.getLogger("gpu-db-query")
+
+# Carga variables desde .env si existe
+load_dotenv()
 
 # Configuración de BD
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///gpu_database.db")

@@ -1,0 +1,35 @@
+services:
+  gpu-agent:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: gpu_intelligence_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Montamos el contenido de server/ directamente en /app
+      - ./server:/app:Z 
+      # Montamos la DB en /app para que sea accesible por los scripts
+      - ./gpu_database.db:/app/gpu_database.db:Z 
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    ports:
+      - "3005:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://gpu-agent:8000/v1
+      - WEBUI_AUTH=false
+      # IMPORTANTE: OpenWebUI necesita una Key aunque sea dummy para el agente
+      - OPENAI_API_KEY=token_not_used 
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - gpu-agent
+    restart: unless-stopped
+
+volumes:
+  openwebui_data:
