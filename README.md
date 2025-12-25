@@ -37,7 +37,7 @@ make setup
 3) Start the services:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Done. The stack is available at:
