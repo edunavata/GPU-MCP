@@ -16,8 +16,26 @@ logger = logging.getLogger("gpu-mcp-agent")
 
 load_dotenv()
 
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11435/v1")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "ollama")
+
+
+def build_llm_client_and_model():
+    if LLM_PROVIDER == "ollama":
+        model_name = os.getenv("OLLAMA_MODEL", "llama3.1")
+        return OpenAI(api_key=OLLAMA_API_KEY, base_url=OLLAMA_BASE_URL), model_name
+    if LLM_PROVIDER != "openai":
+        logger.warning("LLM_PROVIDER no reconocido, usando OpenAI por defecto.")
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+    if OPENAI_BASE_URL:
+        return OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL), model_name
+    return OpenAI(api_key=OPENAI_API_KEY), model_name
+
+
+client, MODEL_NAME = build_llm_client_and_model()
 
 app = FastAPI(title="GPU Agent Standard API")
 
@@ -126,7 +144,7 @@ async def chat_endpoint(request: ChatRequest):
 
     # 1. Llamada inicial (Detección de intención)
     response = client.chat.completions.create(
-        model="gpt-4o", messages=messages, tools=tools_definition, tool_choice="auto"
+        model=MODEL_NAME, messages=messages, tools=tools_definition, tool_choice="auto"
     )
 
     msg = response.choices[0].message
@@ -158,7 +176,7 @@ async def chat_endpoint(request: ChatRequest):
 
         # 3. Respuesta final sintetizada con mentalidad BI
         final_response = client.chat.completions.create(
-            model="gpt-4o", messages=messages
+            model=MODEL_NAME, messages=messages
         )
         logger.info(f"BI Insight delivered in {round(time.time() - start_time, 2)}s")
         return final_response.model_dump()
